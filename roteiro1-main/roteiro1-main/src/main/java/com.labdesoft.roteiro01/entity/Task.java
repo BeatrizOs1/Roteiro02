@@ -25,15 +25,15 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Detalhes da task.")
+@Schema(description = "Represents the details of a task.")
 public class Task {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @NotNull
-    @Size(min = 10, message = "A descrição deve ter no mínimo 10 caracteres")
-    @Schema(name = "A descrição deve ter no mínimo 10 caracteres")
+    @Size(min = 10, message = "Description must be at least 10 characters long")
+    @Schema(description = "Description must be at least 10 characters long")
     private String description;
 
     @NotNull
@@ -52,27 +52,27 @@ public class Task {
         this.description = description;
     }
 
-    public String getStatus() {
+    public String getCurrentStatus() {
         if (type == TaskType.DATA) {
-            if (completed) return "Concluída";
-            if (dueDate == null) return "Prevista";
-            if (dueDate.isAfter(LocalDate.now()) || dueDate.isEqual(LocalDate.now())) return "Prevista";
-            long daysLate = ChronoUnit.DAYS.between(dueDate, LocalDate.now());
-            return daysLate + " dia" + (daysLate != 1 ? "s" : "") + " de atraso";
+            if (completed) return "Completed";
+            if (dueDate == null) return "Scheduled";
+            if (dueDate.isAfter(LocalDate.now()) || dueDate.isEqual(LocalDate.now())) return "Scheduled";
+            long daysOverdue = ChronoUnit.DAYS.between(dueDate, LocalDate.now());
+            return daysOverdue + " day" + (daysOverdue != 1 ? "s" : "") + " overdue";
         } else if (type == TaskType.PRAZO) {
-            if (completed) return "Concluída";
-            if (dueDays == null) return "Prevista";
+            if (completed) return "Completed";
+            if (dueDays == null) return "Scheduled";
             LocalDate deadline = LocalDate.now().plusDays(dueDays);
-            if (deadline.isAfter(LocalDate.now()) || deadline.isEqual(LocalDate.now())) return "Prevista";
-            long daysLate = ChronoUnit.DAYS.between(deadline, LocalDate.now());
-            return daysLate + " dia" + (daysLate != 1 ? "s" : "") + " de atraso";
+            if (deadline.isAfter(LocalDate.now()) || deadline.isEqual(LocalDate.now())) return "Scheduled";
+            long daysOverdue = ChronoUnit.DAYS.between(deadline, LocalDate.now());
+            return daysOverdue + " day" + (daysOverdue != 1 ? "s" : "") + " overdue";
         } else {
-            return completed ? "Concluída" : "Prevista";
+            return completed ? "Completed" : "Scheduled";
         }
     }
 
     @Override
     public String toString() {
-        return "Task [id=" + id + ", description=" + description + ", status=" + getStatus() + "]";
+        return "Task[id=" + id + ", description=" + description + ", status=" + getCurrentStatus() + "]";
     }
 }
