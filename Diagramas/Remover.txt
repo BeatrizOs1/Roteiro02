@@ -1,0 +1,45 @@
+@startuml
+title Diagrama de Sequência - Remover Tarefa
+
+actor Usuário
+Boundary Frontend
+Boundary SpringBoot
+Control taskController
+Participant taskService
+Participant taskRepository
+
+activate SpringBoot
+Usuário -> Frontend: Remover Tarefa
+activate Usuário
+activate Frontend
+
+Frontend -> SpringBoot: DELETE /api/tasks/{id}
+
+group Aplicação Roteiro01 [Aplicação Java Spring Boot]
+    SpringBoot -> taskController: delete(id)
+    activate taskController
+
+    taskController -> taskService: delete(id)
+    activate taskService
+
+    taskService -> taskRepository: deleteById(id)
+    activate taskRepository
+
+    taskRepository --> taskService: void
+    deactivate taskRepository
+
+    taskService --> taskController: void
+    deactivate taskService
+
+    taskController --> SpringBoot: ResponseEntity.noContent()
+    deactivate taskController
+end
+
+SpringBoot --> Frontend: ResponseEntity.noContent()
+Frontend --> Usuário: Tarefa Removida
+
+deactivate SpringBoot
+deactivate Frontend
+deactivate Usuário
+
+@enduml

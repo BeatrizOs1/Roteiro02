@@ -1,0 +1,71 @@
+@startuml
+title Diagrama de Sequência - Visualizar Lista de Tarefas
+
+actor Usuário
+Boundary Frontend
+Boundary SpringBoot
+Control taskController
+Entity Task
+Participant taskService
+Participant taskRepository
+Participant pagedResourcesAssembler
+Boundary TypedQuery
+Participant Hibernate
+Database TodoList
+
+activate SpringBoot
+Usuário -> Frontend: Listar todas as Tarefas
+activate Usuário
+activate Frontend
+
+Frontend -> SpringBoot: GET /api/tasks
+
+group Aplicação Roteiro01 [Aplicação Java Spring Boot]
+    SpringBoot -> taskController: listAll(TaskDto, Pageable, PersistentEntityResourceAssembler)
+    activate taskController
+
+    taskController -> taskService: listAll(pageable)
+    activate taskService
+
+    taskService -> taskRepository: findAll(pageable)
+    activate taskRepository
+
+    taskRepository -> TypedQuery: getResultList(TaskDto)
+    activate TypedQuery
+
+    TypedQuery -> Hibernate: List(TaskDto)
+    activate Hibernate
+
+    Hibernate -> TodoList: SELECT * FROM Tasks
+    TodoList --> Hibernate: Tabela Tasks
+
+    Hibernate --> TypedQuery: Tabela Tasks
+    deactivate Hibernate
+
+    TypedQuery --> taskRepository: Página<Tasks>
+    deactivate TypedQuery
+
+    taskRepository --> taskService: Página<Task>
+    deactivate taskRepository
+
+    taskService --> taskController: Página<Task> eventos
+    deactivate taskService
+
+    taskController -> pagedResourcesAssembler: toModel(eventos, resourceAssembler)
+    activate pagedResourcesAssembler
+
+    pagedResourcesAssembler --> taskController: PagedModel<Task> recurso
+    deactivate pagedResourcesAssembler
+
+    taskController --> SpringBoot: ResponseEntity.ok(recurso)
+    deactivate taskController
+end
+
+SpringBoot --> Frontend: ResponseEntity.ok(recurso)
+Frontend --> Usuário: <list>Task
+
+deactivate SpringBoot
+deactivate Frontend
+deactivate Usuário
+
+@enduml

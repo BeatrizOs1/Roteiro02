@@ -1,0 +1,50 @@
+@startuml
+title Diagrama de Sequência - Editar Tarefa Existente
+
+actor Usuário
+Boundary Frontend
+Boundary SpringBoot
+Control taskController
+Entity Task
+Participant taskService
+Participant taskRepository
+Database TodoList
+
+activate SpringBoot
+Usuário -> Frontend: Editar Tarefa
+activate Usuário
+activate Frontend
+
+Frontend -> SpringBoot: PUT /api/tasks/{id}
+
+group Aplicação Roteiro01 [Aplicação Java Spring Boot]
+    SpringBoot -> taskController: updateTask(id, Task)
+    activate taskController
+
+    taskController -> taskService: update(id, Task)
+    activate taskService
+
+    taskService -> taskRepository: save(Task)
+    activate taskRepository
+
+    taskRepository -> TodoList: UPDATE Tasks SET ...
+    TodoList --> taskRepository: Task Atualizada
+
+    taskRepository --> taskService: Task
+    deactivate taskRepository
+
+    taskService --> taskController: Task
+    deactivate taskService
+
+    taskController --> SpringBoot: ResponseEntity.ok(Task)
+    deactivate taskController
+end
+
+SpringBoot --> Frontend: ResponseEntity.ok(Task)
+Frontend --> Usuário: Task Updated
+
+deactivate SpringBoot
+deactivate Frontend
+deactivate Usuário
+
+@enduml
