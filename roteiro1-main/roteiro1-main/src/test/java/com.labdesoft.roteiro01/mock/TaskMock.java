@@ -1,6 +1,8 @@
 package com.labdesoft.roteiro01.mock;
 
 import com.labdesoft.roteiro01.entity.Task;
+import com.labdesoft.roteiro01.enums.Priority;
+import com.labdesoft.roteiro01.enums.TaskType;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -14,6 +16,9 @@ public class TaskMock {
         Task task1 = new Task();
         task1.setId(1L);
         task1.setDescription("Primeira tarefa");
+        task1.setType(TaskType.LIVRE);
+        task1.setPriority(Priority.ALTA);
+        task1.setCompleted(false);
 
         Task task2 = new Task();
         task2.setId(2L);
@@ -26,4 +31,3 @@ public class TaskMock {
         return pagedResponse;
     }
 }
-
