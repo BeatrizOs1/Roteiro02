@@ -4,7 +4,13 @@ import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.hateoas.EntityModel;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
@@ -21,77 +27,123 @@ import java.util.Optional;
 @RestController
 public class TaskController {
     @Autowired
-    private TaskRepository taskRepository;
+    
+    private final TaskRepository taskRepository;
 
+    // Construtor que aceita um parâmetro do tipo TaskRepository
+    public TaskController(TaskRepository taskRepository) {
+        this.taskRepository = taskRepository;
+    }
+
+    @SuppressWarnings("null")
     @GetMapping("/task")
-    @Operation(summary = "Retrieves all tasks")
-    public ResponseEntity<List<Task>> getAllTasks() {
-        List<Task> tasks = new ArrayList<>();
-        taskRepository.findAll().forEach(tasks::add);
-        if (tasks.isEmpty()) {
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    @Operation(summary = "Lista todas as tarefas da lista")
+    public ResponseEntity<List<Task>> listAll() {
+        try {
+            List<Task> taskList = new ArrayList<Task>();
+            taskRepository.findAll().forEach(taskList::add);
+            if (taskList.isEmpty()) {
+                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+            }
+            return new ResponseEntity<>(taskList, HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
         }
-        return new ResponseEntity<>(tasks, HttpStatus.OK);
+    }
+
+    @GetMapping("/task/{id}")
+    @Operation(summary = "Busca uma tarefa pelo ID")
+    public ResponseEntity<EntityModel<Task>> findTaskById(@PathVariable("id") long id) {
+        Optional<Task> taskData = taskRepository.findById(id);
+
+        if (taskData.isPresent()) {
+            Task task = taskData.get();
+            EntityModel<Task> model = EntityModel.of(task,
+                    linkTo(methodOn(TaskController.class).findTaskById(id)).withSelfRel(),
+                    linkTo(methodOn(TaskController.class).updateTask(id, task)).withRel("update"),
+                    linkTo(methodOn(TaskController.class).deleteTask(id)).withRel("delete"));
+            return new ResponseEntity<>(model, HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
     }
 
     @PostMapping("/task")
-    @Operation(summary = "Creates a new task")
-    public ResponseEntity<EntityModel<Task>> createTask(@RequestBody Task task) {
-        if (task.getType() == TaskType.DATA && task.getDueDate() != null && task.getDueDate().isBefore(LocalDate.now())) {
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+    @Operation(summary = "Adiciona uma tarefa na lista")
+    public ResponseEntity<EntityModel<Task>> addTask(@RequestBody Task task) {
+        try {
+            // Verifica se a tarefa é do tipo "Data" e a data prevista é igual ou superior à data atual
+            if (task.getType() == TaskType.DATA && task.getDueDate() != null && task.getDueDate().isBefore(LocalDate.now())) {
+                return new ResponseEntity<>(HttpStatus.BAD_REQUEST); // Retorna erro se a data prevista for anterior à data atual
+            }
+    
+            Task newTask = taskRepository.save(task);
+            EntityModel<Task> model = EntityModel.of(newTask,
+                    linkTo(methodOn(TaskController.class).findTaskById(newTask.getId())).withSelfRel(),
+                    linkTo(methodOn(TaskController.class).updateTask(newTask.getId(), newTask)).withRel("update"),
+                    linkTo(methodOn(TaskController.class).deleteTask(newTask.getId())).withRel("delete"));
+            return new ResponseEntity<>(model, HttpStatus.CREATED);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
-        Task savedTask = taskRepository.save(task);
-        EntityModel<Task> resource = EntityModel.of(savedTask,
-                linkTo(methodOn(TaskController.class).getTaskById(savedTask.getId())).withSelfRel(),
-                linkTo(methodOn(TaskController.class).updateTask(savedTask.getId(), savedTask)).withRel("update"),
-                linkTo(methodOn(TaskController.class).deleteTask(savedTask.getId())).withRel("delete"));
-        return new ResponseEntity<>(resource, HttpStatus.CREATED);
     }
+    
 
     @PutMapping("/task/{id}")
-    @Operation(summary = "Updates a task by ID")
+    @Operation(summary = "Atualiza uma tarefa na lista pelo ID")
     public ResponseEntity<EntityModel<Task>> updateTask(@PathVariable("id") long id, @RequestBody Task task) {
-        Optional<Task> existingTask = taskRepository.findById(id);
-        if (existingTask.isPresent()) {
+        Optional<Task> taskData = taskRepository.findById(id);
+
+        if (taskData.isPresent()) {
             Task updatedTask = taskRepository.save(task);
-            EntityModel<Task> resource = EntityModel.of(updatedTask,
-                    linkTo(methodOn(TaskController.class).getTaskById(id)).withSelfRel(),
+            EntityModel<Task> model = EntityModel.of(updatedTask,
+                    linkTo(methodOn(TaskController.class).findTaskById(id)).withSelfRel(),
                     linkTo(methodOn(TaskController.class).updateTask(id, updatedTask)).withRel("update"),
                     linkTo(methodOn(TaskController.class).deleteTask(id)).withRel("delete"));
-            return new ResponseEntity<>(resource, HttpStatus.OK);
+            return new ResponseEntity<>(model, HttpStatus.OK);
         } else {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
 
     @DeleteMapping("/task/{id}")
-    @Operation(summary = "Deletes a task by ID")
+    @Operation(summary = "Deleta uma tarefa pelo ID")
     public ResponseEntity<Void> deleteTask(@PathVariable("id") long id) {
-        if (taskRepository.existsById(id)) {
-            taskRepository.deleteById(id);
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-        } else {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        try {
+            if (taskRepository.existsById(id)) {
+                taskRepository.deleteById(id);
+                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+            } else {
+                return new ResponseEntity<>(HttpStatus.ACCEPTED);
+            }
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
     @PutMapping("/task/{id}/complete")
-    @Operation(summary = "Marks a task as completed")
+    @Operation(summary = "Atualiza a tarefa como concluída")
     public ResponseEntity<EntityModel<Task>> completeTask(@PathVariable("id") Long id) {
-        Optional<Task> existingTask = taskRepository.findById(id);
-        if (existingTask.isPresent()) {
-            Task task = existingTask.get();
-            task.setCompleted(true);
-            Task completedTask = taskRepository.save(task);
-
-            EntityModel<Task> resource = EntityModel.of(completedTask,
-                    linkTo(methodOn(TaskController.class).getTaskById(id)).withSelfRel(),
-                    linkTo(methodOn(TaskController.class).updateTask(id, completedTask)).withRel("update"),
-                    linkTo(methodOn(TaskController.class).deleteTask(id)).withRel("delete"));
-
-            return new ResponseEntity<>(resource, HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        try {
+            Optional<Task> taskData = taskRepository.findById(id);
+    
+            if (taskData.isPresent()) {
+                Task existingTask = taskData.get();
+                existingTask.setCompleted(true);
+                Task updatedTask = taskRepository.save(existingTask);
+    
+                EntityModel<Task> model = EntityModel.of(updatedTask,
+                        linkTo(methodOn(TaskController.class).findTaskById(id)).withSelfRel(),
+                        linkTo(methodOn(TaskController.class).updateTask(id, updatedTask)).withRel("update"),
+                        linkTo(methodOn(TaskController.class).deleteTask(id)).withRel("delete"));
+    
+                return new ResponseEntity<>(model, HttpStatus.OK);
+            } else {
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+    
 }
