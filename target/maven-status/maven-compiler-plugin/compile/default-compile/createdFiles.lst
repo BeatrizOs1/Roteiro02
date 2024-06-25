@@ -1,0 +1,8 @@
+com\labdessoft\roteiro01\entity\Task.class
+com\labdessoft\roteiro01\Roteiro01Application.class
+com\labdessoft\roteiro01\controller\WebConfig.class
+com\labdessoft\roteiro01\service\TaskService.class
+com\labdessoft\roteiro01\controller\TaskController.class
+com\labdessoft\roteiro01\entity\TaskType.class
+com\labdessoft\roteiro01\repository\TaskRepository.class
+com\labdessoft\roteiro01\entity\Task$1.class
